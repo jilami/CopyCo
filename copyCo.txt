@@ -1,0 +1,133 @@
+import java.io.*;
+import java.util.*;
+
+public class ShellScriptReader {
+    public static void main(String[] args) {
+        // Define the file path to the shell script
+        String filePath = "path_to_your_shell_script.sh";
+
+        try {
+            // Create a File object for the shell script
+            File scriptFile = new File(filePath);
+
+            // Create a BufferedReader to read the file line by line
+            BufferedReader br = new BufferedReader(new FileReader(scriptFile));
+            String line;
+            List<String> commands = new ArrayList<>();  // List to store commands
+            Map<String, String> variables = new HashMap<>();  // Map to store variable declarations
+            StringBuilder currentCommand = new StringBuilder();  // For multi-line commands
+            StringBuilder currentVar = new StringBuilder();  // For multi-line variable expressions
+            String currentVarName = null;  // To store the variable name while processing multi-line variables
+
+            StringBuilder currentCommandSubstitution = new StringBuilder();  // To handle $(...) expressions
+            StringBuilder currentHereDoc = new StringBuilder();  // To handle <<- notation
+            boolean insideHereDoc = false;  // Flag to indicate if we are inside a here-document
+            boolean insideSubstitution = false;  // Flag to indicate if we are inside a command substitution
+
+            // Read the file line by line
+            while ((line = br.readLine()) != null) {
+                line = line.trim(); // Trim spaces from the start and end of the line
+
+                // Ignore empty lines or lines that are comments
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+
+                // Handle command substitution $(...)
+                if (line.contains("$(")) {
+                    insideSubstitution = true;
+                    currentCommandSubstitution.append(line.trim());
+                    continue;
+                }
+
+                if (insideSubstitution) {
+                    currentCommandSubstitution.append(" " + line.trim());
+                    if (line.contains(")")) {
+                        commands.add(currentCommandSubstitution.toString().trim());
+                        currentCommandSubstitution.setLength(0);  // Reset after adding the full substitution
+                        insideSubstitution = false;  // Exit substitution mode
+                    }
+                    continue;
+                }
+
+                // Handle here-document <<- (multi-line input)
+                if (line.contains("<<-")) {
+                    insideHereDoc = true;
+                    currentHereDoc.append(line.substring(3).trim() + "\n");  // Capture the delimiter
+                    continue;
+                }
+
+                if (insideHereDoc) {
+                    currentHereDoc.append(line + "\n");
+
+                    // If we encounter the delimiter, end the here-doc section
+                    String delimiter = currentHereDoc.toString().split("\n")[0].trim();
+                    if (line.contains(delimiter)) {
+                        commands.add(currentHereDoc.toString().trim());
+                        currentHereDoc.setLength(0);  // Reset for the next here-doc
+                        insideHereDoc = false;  // Exit here-doc mode
+                    }
+                    continue;
+                }
+
+                // Check if it's a variable declaration (e.g., VAR=value or VAR='value')
+                if (line.contains("=") && !line.startsWith("echo") && !line.endsWith("\\")) {
+                    // If the line contains '=', it's likely a variable declaration
+                    String[] parts = line.split("=", 2);
+                    String varName = parts[0].trim();
+                    String expression = parts.length > 1 ? parts[1].trim() : "";
+
+                    if (expression.endsWith("\\")) {
+                        // If the expression ends with a backslash, it's a multi-line variable expression
+                        currentVarName = varName;
+                        currentVar.append(expression.substring(0, expression.length() - 1).trim()); // Remove backslash
+                    } else {
+                        // Complete single-line variable declaration
+                        variables.put(varName, expression);
+                    }
+                } else if (currentVarName != null) {
+                    // If we're handling a multi-line variable expression
+                    if (line.endsWith("\\")) {
+                        currentVar.append(line.substring(0, line.length() - 1).trim()); // Remove backslash
+                    } else {
+                        currentVar.append(line.trim());
+                        variables.put(currentVarName, currentVar.toString());
+                        currentVar.setLength(0);  // Reset for the next multi-line expression
+                        currentVarName = null;  // Reset variable name
+                    }
+                } else {
+                    // Handle general multi-line commands (continuation lines with backslash)
+                    if (line.endsWith("\\")) {
+                        currentCommand.append(line.substring(0, line.length() - 1).trim());
+                    } else {
+                        currentCommand.append(line);
+                        commands.add(currentCommand.toString().trim());  // Store the complete command
+                        currentCommand.setLength(0);  // Reset for the next command
+                    }
+                }
+            }
+
+            // If there is any leftover command (should not happen if the script is well-formed)
+            if (currentCommand.length() > 0) {
+                commands.add(currentCommand.toString().trim());
+            }
+
+            // Print the commands (just for verification)
+            System.out.println("Commands:");
+            for (String command : commands) {
+                System.out.println(command);
+            }
+
+            // Print the variables and their expressions
+            System.out.println("\nVariables:");
+            for (Map.Entry<String, String> entry : variables.entrySet()) {
+                System.out.println(entry.getKey() + " = " + entry.getValue());
+            }
+
+            // Close the BufferedReader
+            br.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
