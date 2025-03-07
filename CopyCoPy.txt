@@ -1,0 +1,58 @@
+import curses
+
+def main(stdscr):
+    # Clear the screen
+    stdscr.clear()
+    
+    # Set up the input window
+    curses.curs_set(1)  # Show cursor
+    stdscr.addstr(0, 0, "Use arrow keys to move the cursor. Press Enter to submit.")
+
+    # Initial cursor position
+    cursor_x = 0
+    cursor_y = 1
+    name = ""
+    
+    while True:
+        # Display the current input at the cursor position
+        stdscr.addstr(cursor_y, cursor_x, name)
+        stdscr.refresh()
+        
+        # Get user input
+        char = stdscr.getch()
+        
+        if char == 10:  # Enter key
+            break
+        elif char == 27:  # Escape key
+            return
+        elif char == 127:  # Backspace key
+            if cursor_x > 0:
+                name = name[:-1]
+                cursor_x -= 1
+        elif char == curses.KEY_RIGHT:  # Right arrow key
+            if cursor_x < len(name):
+                cursor_x += 1
+        elif char == curses.KEY_LEFT:  # Left arrow key
+            if cursor_x > 0:
+                cursor_x -= 1
+        elif char == curses.KEY_UP:  # Up arrow key (optional, not used in this example)
+            pass
+        elif char == curses.KEY_DOWN:  # Down arrow key (optional, not used in this example)
+            pass
+        else:
+            name = name[:cursor_x] + chr(char) + name[cursor_x:]
+            cursor_x += 1
+
+        # Clear and redraw the input field
+        stdscr.clear()
+        stdscr.addstr(0, 0, "Use arrow keys to move the cursor. Press Enter to submit.")
+        stdscr.addstr(cursor_y, cursor_x, name)
+
+    # Display the result after submitting the input
+    stdscr.clear()
+    stdscr.addstr(0, 0, f"Hello, {name}!")
+    stdscr.refresh()
+    stdscr.getch()  # Wait for user input before exiting
+
+# Run the curses application
+curses.wrapper(main)
