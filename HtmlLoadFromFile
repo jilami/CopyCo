@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Table from File with Row Details</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    tr:hover {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+    #modal {
+      display: none;
+      position: fixed;
+      top: 20%;
+      left: 30%;
+      width: 40%;
+      padding: 20px;
+      background-color: white;
+      border: 2px solid #000;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    #modalClose {
+      float: right;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Data Table</h2>
+<table id="dataTable">
+  <thead></thead>
+  <tbody></tbody>
+</table>
+
+<div id="modal">
+  <span id="modalClose">X</span>
+  <h3>Details</h3>
+  <div id="modalContent"></div>
+</div>
+
+<script>
+  // Load and parse delimited data (e.g., pipe | delimited)
+  fetch('data.csv')
+    .then(res => res.text())
+    .then(text => {
+      const lines = text.trim().split('\n');
+      const headers = lines[0].split('|');
+      const tbody = document.querySelector('#dataTable tbody');
+      const thead = document.querySelector('#dataTable thead');
+
+      // Create table header
+      thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+      // Create table rows
+      lines.slice(1).forEach(line => {
+        const cols = line.split('|');
+        const tr = document.createElement('tr');
+        cols.forEach(col => {
+          const td = document.createElement('td');
+          td.textContent = col;
+          tr.appendChild(td);
+        });
+
+        // Add click handler to each row
+        const rowId = cols[0]; // assuming first column is an ID
+        tr.addEventListener('click', () => showDetails(rowId));
+        tbody.appendChild(tr);
+      });
+    });
+
+  // Show detail modal
+  function showDetails(id) {
+    fetch(`details/${id}.txt`)
+      .then(res => res.text())
+      .then(content => {
+        document.getElementById('modalContent').textContent = content;
+        document.getElementById('modal').style.display = 'block';
+      })
+      .catch(err => {
+        document.getElementById('modalContent').textContent = 'Error loading detail file.';
+        document.getElementById('modal').style.display = 'block';
+      });
+  }
+
+  // Close modal
+  document.getElementById('modalClose').onclick = () => {
+    document.getElementById('modal').style.display = 'none';
+  };
+</script>
+
+</body>
+</html>
