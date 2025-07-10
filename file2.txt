@@ -1,0 +1,3 @@
+0012,Jon Doe,30,New York,50000
+0020,Jane Roe,31,London,55000
+0031,Bob Smith,40,Boston,65000

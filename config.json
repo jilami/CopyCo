@@ -1,0 +1,8 @@
+{
+  "file_type": "delimited",
+  "delimiter": ",",
+  "field_names": ["ID", "Name", "Age", "City", "Salary"],
+  "field_widths": [4, 10, 3, 10, 6],
+  "ignore_fields": ["Salary"],
+  "key_fields": ["ID"]
+}
